@@ -1,123 +1,96 @@
-# LeafCheck - Plant Identification & Care App
+# GreenPlantAI - Plant Identification & Care App
 
-## Product Requirements Document (PRD)
+## Product Requirements Document (PRD) v2.0
 
 ### Overview
-LeafCheck is a plant identification and care mobile application that uses the Plant.id (Kindwise) API to identify plants from photos, detect diseases, and provide care recommendations. Users can build a digital garden and set watering reminders.
+GreenPlantAI is a plant identification and care mobile application that uses Plant.id (Kindwise) API for identification, Straico API for AI-powered botanist chat, and a premium subscription system for advanced features.
 
 ### Tech Stack
 - **Frontend**: Expo React Native (SDK 54) with Expo Router
-- **Backend**: FastAPI (Python) 
+- **Backend**: FastAPI (Python) with rate limiting
 - **Database**: MongoDB
-- **AI/ML**: Plant.id (Kindwise) API v3
-- **Authentication**: JWT (bcrypt + python-jose)
+- **Plant AI**: Plant.id (Kindwise) API v3
+- **AI Chat**: Straico API (GPT-4o-mini, Claude Sonnet 4.5)
+- **Auth**: JWT (bcrypt + python-jose)
 
-### Architecture
-```
-Mobile App (Expo) → FastAPI Backend → MongoDB
-                                    → Plant.id API v3
-```
+### Security Architecture
+- **API Keys**: Stored server-side only in `.env` — NEVER exposed to frontend
+- **Key Masking**: All API keys masked in logs (e.g., `pnT7****mlAJ`)
+- **JWT Authentication**: Secure token-based auth with configurable expiry
+- **Rate Limiting**: 5/min register, 10/min login, 20/min identify, 30/min chat
+- **Password Hashing**: bcrypt via passlib
+- **Input Validation**: All user inputs validated server-side
+- **HTTPS**: Enforced for all API communication
 
-### Features Implemented
+### Features
 
 #### 1. Authentication (JWT)
-- User registration with email, password, name
-- User login with JWT token
-- Secure token storage (expo-secure-store on mobile, localStorage on web)
-- Auto-login on app restart
+- Register/login with email validation
+- Secure token storage (SecureStore mobile, localStorage web)
+- Auto-login, password strength requirements
 
 #### 2. Plant Identification
-- Camera capture or gallery image selection
-- Image sent as base64 to backend
-- Backend forwards to Plant.id API v3 with:
-  - Species classification
-  - Health assessment (disease detection)
-  - Care details (watering, light, soil, toxicity)
-- Results displayed with confidence scores
+- Camera capture + gallery picker
+- Plant.id API v3 integration (species, health, care details)
+- Results with confidence scores, disease detection
 
 #### 3. Digital Garden
-- Save identified plants to personal collection
-- View all saved plants with images
+- Save/manage identified plants
 - Track watering history
-- Delete plants from garden
+- View plant photos, species info
 
 #### 4. Enhanced Plant Detail (Tabbed Menu)
-- **About Tab**: Species name, common names, description, toxicity, confidence, last watered
-- **Health Assessment Tab**: Health status banner (healthy/unhealthy), detected diseases with treatment (prevention, biological, chemical), link to AI Botanist chat
-- **Plant Care Tab**: 6 editable care fields:
-  - Soil type
-  - Light condition
-  - Temperature
-  - Watering info
-  - Repot cycle
-  - Prune cycle
-  - Auto-filled from Plant.id API, user-editable via modal
-- **Common Problems Tab**: Recorded issues, link to AI Botanist
+- **About**: Species, description, toxicity, confidence
+- **Health Assessment**: Health status, detected diseases with treatments
+- **Plant Care** (editable): Soil, Light, Temperature, Water, Repot Cycle, Prune Cycle
+- **Common Problems**: Disease records, AI Botanist links
 
-#### 5. AI Botanist Chat
-- Per-plant conversational AI powered by **Straico API (GPT-4o-mini)**
-- Context-aware: sends plant species, care info, health status to AI
-- Chat history persistence in MongoDB
-- Quick prompts for common questions
-- Accessible from plant detail (Health tab, Issues tab, hero actions)
+#### 5. AI Botanist Chat (Multi-Model)
+- GPT-4o-mini (free tier)
+- Claude Sonnet 4.5 (premium)
+- Claude Sonnet 4 (premium)
+- Ollama (self-hosted, coming soon)
+- Model picker UI with PRO badges
+- Remaining chats counter
+- Chat history persistence
 
-#### 6. Care Reminders
-- Create watering reminders per plant
-- Configurable frequency (days) and time
-- Toggle reminders on/off
-- View overdue reminders on home screen
+#### 6. Premium Subscription
+- Free: 10 AI chats/day, GPT-4o-mini only
+- Monthly ($4.99): Unlimited chats, Claude access, priority analysis
+- Yearly ($39.99): Same + 33% savings
+- **MOCKED** payment (Stripe integration ready for production)
 
-#### 5. Plant Detail View
-- Full plant information display
-- Quick actions (water, remind, delete)
-- Care guide (watering, light, soil, toxicity)
-- Add reminder modal
+#### 7. Care Reminders
+- Per-plant watering reminders
+- Configurable frequency + time
+- Toggle on/off, overdue detection
 
-### API Endpoints
+### API Endpoints (18 total)
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | /api/auth/register | No | Register user |
-| POST | /api/auth/login | No | Login user |
-| GET | /api/auth/me | Yes | Get current user |
-| POST | /api/plants/identify | Yes | Identify plant from image |
-| POST | /api/garden | Yes | Save plant to garden |
-| GET | /api/garden | Yes | List user's plants |
-| GET | /api/garden/:id | Yes | Get plant details |
+| POST | /api/auth/register | No | Register (rate: 5/min) |
+| POST | /api/auth/login | No | Login (rate: 10/min) |
+| GET | /api/auth/me | Yes | Get current user + premium status |
+| GET | /api/models | Yes | List AI models with access info |
+| GET | /api/premium/status | Yes | Subscription info + chat limits |
+| POST | /api/premium/upgrade | Yes | Upgrade to premium (MOCKED) |
+| POST | /api/plants/identify | Yes | Plant.id identification (rate: 20/min) |
+| POST | /api/garden | Yes | Save plant |
+| GET | /api/garden | Yes | List plants |
+| GET | /api/garden/:id | Yes | Plant detail |
 | DELETE | /api/garden/:id | Yes | Remove plant |
 | POST | /api/garden/:id/water | Yes | Log watering |
-| PUT | /api/garden/:id/care | Yes | Update care fields (editable) |
+| PUT | /api/garden/:id/care | Yes | Update editable care fields |
 | POST | /api/reminders | Yes | Create reminder |
 | GET | /api/reminders | Yes | List reminders |
 | PUT | /api/reminders/:id | Yes | Update reminder |
 | DELETE | /api/reminders/:id | Yes | Delete reminder |
-| POST | /api/chat | Yes | AI Botanist chat (Straico/GPT-4o-mini) |
-| GET | /api/chat/:plantId/history | Yes | Get chat history for plant |
-
-### MongoDB Collections
-- **users**: id, email, name, password_hash, created_at
-- **plants**: id, user_id, species_name, common_names, description, photo_base64, watering_info, light_condition, soil_type, toxicity, confidence, last_watered, created_at
-- **reminders**: id, plant_id, user_id, reminder_type, frequency_days, time_of_day, enabled, next_reminder, created_at
-
-### Design System
-- **Theme**: Nature/Organic (greens, earth tones)
-- **Primary**: #2F5233 (Forest Green)
-- **Background**: #F7F9F8 (Light Sage)
-- **Navigation**: Tab-based (Home, Garden, Reminders, Profile)
-- **Components**: React Native native with StyleSheet
-
-### Plant.id API Integration
-- **Endpoint**: POST https://plant.id/api/v3/identification
-- **Features used**: Species classification, health assessment, disease detection, care details
-- **Details requested**: common_names, description, watering, best_watering, best_light_condition, best_soil_type, toxicity, image
+| POST | /api/chat | Yes | AI Botanist chat (rate: 30/min) |
+| GET | /api/chat/:plantId/history | Yes | Chat history |
+| GET | /api/security/status | Yes | Security features status |
 
 ### Test Results
-- Backend: 23/23 tests passed (100%)
-- Frontend: All UI flows working correctly
-- Auth flow: Working
-- Navigation: All tabs functional
-- Plant.id API: Validated
-
-### Environment Variables
-- Backend: MONGO_URL, DB_NAME, PLANT_ID_API_KEY, JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_HOURS
-- Frontend: EXPO_PUBLIC_BACKEND_URL (auto-configured)
+- Iteration 1: 23/23 passed (MVP)
+- Iteration 2: 37/37 passed (tabs + chat)
+- Iteration 3: Backend 88%, Frontend 100% (security + premium + models)
