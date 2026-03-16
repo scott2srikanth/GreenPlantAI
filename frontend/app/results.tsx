@@ -48,6 +48,9 @@ export default function ResultsScreen() {
           soil_type: topMatch.best_soil_type,
           toxicity: topMatch.toxicity,
           confidence: topMatch.probability,
+          health_status: isHealthy === false ? 'unhealthy' : 'healthy',
+          health_details: healthProb ? `Health confidence: ${Math.round(healthProb * 100)}%` : null,
+          diseases: diseases.filter((d: any) => d.probability > 0.1),
         }),
       });
       if (res.ok) {

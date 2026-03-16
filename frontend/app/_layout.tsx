@@ -12,6 +12,7 @@ export default function RootLayout() {
         <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="results" options={{ presentation: 'modal' }} />
         <Stack.Screen name="plant-detail" />
+        <Stack.Screen name="botanist-chat" />
       </Stack>
     </AuthProvider>
   );

@@ -32,6 +32,10 @@ JWT_EXPIRATION_HOURS = int(os.environ['JWT_EXPIRATION_HOURS'])
 PLANT_ID_API_KEY = os.environ['PLANT_ID_API_KEY']
 PLANT_ID_BASE_URL = "https://plant.id/api/v3"
 
+# Straico Config
+STRAICO_API_KEY = os.environ['STRAICO_API_KEY']
+STRAICO_MODEL = os.environ.get('STRAICO_MODEL', 'openai/gpt-4o-mini')
+
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -83,6 +87,13 @@ class SavePlantRequest(BaseModel):
     soil_type: Optional[str] = None
     toxicity: Optional[str] = None
     confidence: Optional[float] = None
+    temperature: Optional[str] = None
+    repot_cycle: Optional[str] = None
+    prune_cycle: Optional[str] = None
+    common_problems: Optional[str] = None
+    health_status: Optional[str] = None
+    health_details: Optional[str] = None
+    diseases: Optional[List[dict]] = None
 
 class PlantResponse(BaseModel):
     id: str
@@ -97,7 +108,27 @@ class PlantResponse(BaseModel):
     toxicity: Optional[str] = None
     confidence: Optional[float] = None
     last_watered: Optional[str] = None
+    temperature: Optional[str] = None
+    repot_cycle: Optional[str] = None
+    prune_cycle: Optional[str] = None
+    common_problems: Optional[str] = None
+    health_status: Optional[str] = None
+    health_details: Optional[str] = None
+    diseases: Optional[List[dict]] = None
     created_at: str
+
+class UpdatePlantCareRequest(BaseModel):
+    watering_info: Optional[str] = None
+    light_condition: Optional[str] = None
+    soil_type: Optional[str] = None
+    temperature: Optional[str] = None
+    repot_cycle: Optional[str] = None
+    prune_cycle: Optional[str] = None
+
+class ChatMessage(BaseModel):
+    plant_id: str
+    message: str
+    history: List[dict] = []
 
 class WaterPlantRequest(BaseModel):
     watered_at: Optional[str] = None
@@ -302,6 +333,13 @@ async def save_plant(data: SavePlantRequest, user: dict = Depends(get_current_us
         "soil_type": data.soil_type,
         "toxicity": data.toxicity,
         "confidence": data.confidence,
+        "temperature": data.temperature,
+        "repot_cycle": data.repot_cycle,
+        "prune_cycle": data.prune_cycle,
+        "common_problems": data.common_problems,
+        "health_status": data.health_status,
+        "health_details": data.health_details,
+        "diseases": data.diseases,
         "last_watered": None,
         "created_at": now
     }
@@ -399,6 +437,123 @@ async def delete_reminder(reminder_id: str, user: dict = Depends(get_current_use
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Reminder not found")
     return {"success": True}
+
+
+# ==================== PLANT CARE UPDATE ====================
+
+@api_router.put("/garden/{plant_id}/care", response_model=PlantResponse)
+async def update_plant_care(plant_id: str, data: UpdatePlantCareRequest, user: dict = Depends(get_current_user)):
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    result = await db.plants.update_one(
+        {"id": plant_id, "user_id": user["id"]},
+        {"$set": update_data}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Plant not found")
+    plant = await db.plants.find_one({"id": plant_id}, {"_id": 0})
+    return PlantResponse(**plant)
+
+
+# ==================== AI BOTANIST CHAT ====================
+
+@api_router.post("/chat")
+async def ai_botanist_chat(data: ChatMessage, user: dict = Depends(get_current_user)):
+    """AI Botanist chat using Straico API with GPT-4o-mini"""
+    # Fetch plant data for context
+    plant = await db.plants.find_one({"id": data.plant_id, "user_id": user["id"]}, {"_id": 0, "photo_base64": 0})
+    if not plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
+
+    # Build system context
+    plant_context = f"""You are LeafCheck AI Botanist, an expert plant care advisor.
+You are helping the user with their plant: {plant.get('species_name', 'Unknown')}.
+
+Plant Details:
+- Species: {plant.get('species_name', 'Unknown')}
+- Common Names: {', '.join(plant.get('common_names', []))}
+- Description: {plant.get('description', 'N/A')}
+- Watering: {plant.get('watering_info', 'N/A')}
+- Light: {plant.get('light_condition', 'N/A')}
+- Soil: {plant.get('soil_type', 'N/A')}
+- Temperature: {plant.get('temperature', 'N/A')}
+- Toxicity: {plant.get('toxicity', 'N/A')}
+- Health Status: {plant.get('health_status', 'N/A')}
+- Last Watered: {plant.get('last_watered', 'Never')}
+
+Provide helpful, specific, and actionable plant care advice. Be friendly and concise.
+If the user asks about disease treatment, provide practical remedies.
+If unsure, recommend consulting a local plant nursery expert."""
+
+    # Build the message with conversation history
+    conversation = f"System: {plant_context}\n\n"
+    for msg in data.history[-10:]:  # Keep last 10 messages
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        conversation += f"{'User' if role == 'user' else 'Assistant'}: {content}\n\n"
+    conversation += f"User: {data.message}\n\nAssistant:"
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.post(
+                "https://api.straico.com/v1/prompt/completion",
+                headers={
+                    "Authorization": f"Bearer {STRAICO_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "models": [STRAICO_MODEL],
+                    "message": conversation
+                }
+            )
+
+        if response.status_code not in (200, 201):
+            logger.error(f"Straico API error: {response.status_code} - {response.text}")
+            raise HTTPException(status_code=502, detail="AI service unavailable")
+
+        result = response.json()
+        completions = result.get("data", {}).get("completions", {})
+        model_data = completions.get(STRAICO_MODEL, {})
+        completion = model_data.get("completion", {})
+        choices = completion.get("choices", [])
+
+        if choices:
+            ai_message = choices[0].get("message", {}).get("content", "")
+        else:
+            ai_message = "I'm sorry, I couldn't generate a response. Please try again."
+
+        # Save chat to DB
+        chat_id = str(uuid.uuid4())
+        await db.chats.insert_one({
+            "id": chat_id,
+            "plant_id": data.plant_id,
+            "user_id": user["id"],
+            "user_message": data.message,
+            "ai_response": ai_message,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+
+        return {
+            "success": True,
+            "response": ai_message,
+            "chat_id": chat_id,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Chat error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/chat/{plant_id}/history")
+async def get_chat_history(plant_id: str, user: dict = Depends(get_current_user)):
+    """Get chat history for a plant"""
+    chats = await db.chats.find(
+        {"plant_id": plant_id, "user_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return chats
 
 
 # ==================== HEALTH CHECK ====================

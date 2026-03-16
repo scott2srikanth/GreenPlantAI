@@ -5,7 +5,7 @@ import os
 @pytest.fixture(scope="session")
 def base_url():
     """Base URL for API testing"""
-    return os.environ.get('EXPO_PUBLIC_BACKEND_URL', '').rstrip('/')
+    return os.environ.get('EXPO_PUBLIC_BACKEND_URL', 'https://plant-scan-ai.preview.emergentagent.com').rstrip('/')
 
 @pytest.fixture(scope="session")
 def api_client():
