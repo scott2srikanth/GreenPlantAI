@@ -41,7 +41,27 @@ Mobile App (Expo) → FastAPI Backend → MongoDB
 - Track watering history
 - Delete plants from garden
 
-#### 4. Care Reminders
+#### 4. Enhanced Plant Detail (Tabbed Menu)
+- **About Tab**: Species name, common names, description, toxicity, confidence, last watered
+- **Health Assessment Tab**: Health status banner (healthy/unhealthy), detected diseases with treatment (prevention, biological, chemical), link to AI Botanist chat
+- **Plant Care Tab**: 6 editable care fields:
+  - Soil type
+  - Light condition
+  - Temperature
+  - Watering info
+  - Repot cycle
+  - Prune cycle
+  - Auto-filled from Plant.id API, user-editable via modal
+- **Common Problems Tab**: Recorded issues, link to AI Botanist
+
+#### 5. AI Botanist Chat
+- Per-plant conversational AI powered by **Straico API (GPT-4o-mini)**
+- Context-aware: sends plant species, care info, health status to AI
+- Chat history persistence in MongoDB
+- Quick prompts for common questions
+- Accessible from plant detail (Health tab, Issues tab, hero actions)
+
+#### 6. Care Reminders
 - Create watering reminders per plant
 - Configurable frequency (days) and time
 - Toggle reminders on/off
@@ -66,10 +86,13 @@ Mobile App (Expo) → FastAPI Backend → MongoDB
 | GET | /api/garden/:id | Yes | Get plant details |
 | DELETE | /api/garden/:id | Yes | Remove plant |
 | POST | /api/garden/:id/water | Yes | Log watering |
+| PUT | /api/garden/:id/care | Yes | Update care fields (editable) |
 | POST | /api/reminders | Yes | Create reminder |
 | GET | /api/reminders | Yes | List reminders |
 | PUT | /api/reminders/:id | Yes | Update reminder |
 | DELETE | /api/reminders/:id | Yes | Delete reminder |
+| POST | /api/chat | Yes | AI Botanist chat (Straico/GPT-4o-mini) |
+| GET | /api/chat/:plantId/history | Yes | Get chat history for plant |
 
 ### MongoDB Collections
 - **users**: id, email, name, password_hash, created_at
