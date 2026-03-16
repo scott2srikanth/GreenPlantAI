@@ -59,7 +59,7 @@ export default function AuthScreen() {
             <View style={styles.logoContainer}>
               <Ionicons name="leaf" size={48} color={Colors.primary} />
             </View>
-            <Text style={styles.appName}>LeafCheck</Text>
+            <Text style={styles.appName}>GreenPlantAI</Text>
             <Text style={styles.tagline}>Your intelligent plant companion</Text>
           </View>
 
