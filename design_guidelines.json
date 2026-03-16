@@ -1,0 +1,169 @@
+{
+  "identity": {
+    "name": "E1 - The Digital Botanist",
+    "mission": "Create a digital greenhouse that feels like a sanctuary, not a spreadsheet. Organic, tactile, and calm.",
+    "principles": [
+      "Fusion: Scientific Precision x Zen Garden Calm",
+      "Emotion: Every interaction should feel like touching a leaf (tactile, organic)",
+      "Content: The Plant is the Hero. UI recedes like soil.",
+      "Negative Space: Airflow is as important for design as it is for plants."
+    ]
+  },
+  "typography": {
+    "strategy": "The 'Botanical Journal' Pairing",
+    "headings": {
+      "family": "Playfair Display, serif",
+      "weight": "600",
+      "usage": "Screen titles, Plant Names (Latin)",
+      "fallback": "Georgia"
+    },
+    "body": {
+      "family": "Urbanist, sans-serif",
+      "weight": "400",
+      "usage": "Care instructions, UI labels, data",
+      "fallback": "System"
+    },
+    "scales": {
+      "display": "text-4xl font-semibold tracking-tight",
+      "h1": "text-3xl font-semibold",
+      "h2": "text-2xl font-medium",
+      "h3": "text-xl font-medium",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed text-gray-600",
+      "caption": "text-sm text-gray-500 uppercase tracking-widest"
+    }
+  },
+  "palette": {
+    "theme": "organic_light",
+    "colors": {
+      "primary": {
+        "DEFAULT": "#2F5233",
+        "light": "#4A7C50",
+        "dark": "#1A3320",
+        "foreground": "#FFFFFF"
+      },
+      "secondary": {
+        "DEFAULT": "#E3EBE4",
+        "foreground": "#2F5233"
+      },
+      "background": {
+        "default": "#F7F9F8",
+        "paper": "#FFFFFF",
+        "subtle": "#F0F4F2"
+      },
+      "text": {
+        "primary": "#1A1F1C",
+        "secondary": "#5C6660",
+        "muted": "#9CA3AF"
+      },
+      "status": {
+        "healthy": "#4CAF50",
+        "warning": "#E6B050",
+        "danger": "#D35D47",
+        "info": "#4A90E2"
+      }
+    },
+    "gradients": {
+      "sunlight": ["rgba(255,255,255,0)", "rgba(255,255,255,0.8)"],
+      "forest_overlay": ["rgba(47, 82, 51, 0.9)", "rgba(26, 51, 32, 0.95)"]
+    }
+  },
+  "layout": {
+    "spacing_scale": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "xl": 32,
+      "2xl": 48,
+      "3xl": 64
+    },
+    "border_radius": {
+      "sm": 8,
+      "md": 16,
+      "lg": 24,
+      "full": 9999
+    },
+    "grid_strategy": "Native Flexbox. Use 'gap-4' or 'gap-6' for breathing room. Avoid rigid grids; use masonry-style staggered layouts for image feeds if possible."
+  },
+  "components": {
+    "buttons": {
+      "primary": {
+        "style": "bg-primary rounded-full py-4 px-8 items-center justify-center shadow-lg shadow-primary/30",
+        "text_style": "text-white font-semibold text-lg"
+      },
+      "secondary": {
+        "style": "bg-secondary rounded-full py-4 px-8 items-center justify-center",
+        "text_style": "text-primary font-semibold text-lg"
+      },
+      "ghost": {
+        "style": "bg-transparent py-2 px-4",
+        "text_style": "text-primary font-medium"
+      }
+    },
+    "cards": {
+      "plant_card": {
+        "style": "bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4",
+        "image_style": "h-48 w-full object-cover",
+        "content_style": "p-4"
+      },
+      "task_card": {
+        "style": "bg-secondary/30 rounded-xl p-4 flex-row items-center justify-between border-l-4 border-primary"
+      }
+    },
+    "inputs": {
+      "default": {
+        "style": "bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-800",
+        "focus_style": "border-primary bg-white"
+      }
+    }
+  },
+  "screens": {
+    "auth": {
+      "style": "Minimalist. Background image with heavy blur (blur-xl) overlay. Bottom sheet for inputs.",
+      "background_image": "https://images.unsplash.com/photo-1633849702892-7a4117d68a00"
+    },
+    "home": {
+      "header_style": "pt-12 pb-6 px-6 bg-white",
+      "greeting_style": "font-serif text-3xl text-primary mb-1",
+      "section_title": "text-xl font-medium text-gray-800 mb-4 px-6"
+    },
+    "camera": {
+      "overlay_style": "absolute inset-0 items-center justify-end pb-12 bg-black/30",
+      "shutter_button": "w-20 h-20 rounded-full border-4 border-white bg-white/20 items-center justify-center"
+    },
+    "plant_detail": {
+      "hero_image": "h-96 w-full object-cover rounded-b-[40px]",
+      "sheet_style": "-mt-12 bg-white rounded-t-[40px] px-8 pt-10 flex-1"
+    }
+  },
+  "assets": {
+    "images": {
+      "auth_bg": "https://images.unsplash.com/photo-1563296224-d6c810c75717",
+      "placeholder_plant": "https://images.unsplash.com/photo-1658043679004-7a3d26ae6ad7",
+      "disease_example": "https://images.unsplash.com/photo-1769613638176-9867759e8b19",
+      "texture_leaf": "https://images.unsplash.com/photo-1633849702892-7a4117d68a00",
+      "cactus_minimal": "https://images.unsplash.com/photo-1770489309085-8064ca3acc03"
+    },
+    "icons": {
+      "library": "Lucide React Native (preferred) or Expo Vector Icons",
+      "style": "Stroke width 1.5 or 2 (Fine lines)",
+      "color": "#2F5233"
+    }
+  },
+  "motion": {
+    "preferences": "Reduced motion safe. Smooth fade-ins.",
+    "page_transition": "Slide from right (standard iOS) or Fade scale (Android)",
+    "micro_interactions": "Scale down (0.95) on press for buttons and cards."
+  },
+  "instructions_to_main_agent": [
+    "CRITICAL: USE NATIVEWIND (Tailwind) for styling. Do not use StyleSheet.create unless absolutely necessary for animations.",
+    "Do NOT use HTML tags (div, span, img). Use View, Text, Image, TouchableOpacity, ScrollView.",
+    "For the 'Digital Garden', use a masonry layout or a clean list with large images.",
+    "Ensure the Camera screen has a transparent overlay for the scanning zone.",
+    "Use 'SafeAreaView' from 'react-native-safe-area-context' for all screens.",
+    "Implement a 'Toast' or 'Snackbar' for notifications using a custom absolute positioned component animated with Reanimated.",
+    "Authentication: Store JWT in 'expo-secure-store'.",
+    "Font Loading: Ensure fonts (Playfair, Urbanist) are loaded in 'app/_layout.tsx' before rendering."
+  ]
+}
