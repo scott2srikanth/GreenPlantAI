@@ -13,6 +13,8 @@ export default function RootLayout() {
         <Stack.Screen name="results" options={{ presentation: 'modal' }} />
         <Stack.Screen name="plant-detail" />
         <Stack.Screen name="botanist-chat" />
+        <Stack.Screen name="payment-success" />
+        <Stack.Screen name="payment-cancel" />
       </Stack>
     </AuthProvider>
   );

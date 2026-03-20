@@ -23,7 +23,9 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE"
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ]
     },
     "web": {

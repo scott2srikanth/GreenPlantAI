@@ -19,6 +19,9 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from starlette.responses import JSONResponse
+from emergentintegrations.payments.stripe.checkout import (
+    StripeCheckout, CheckoutSessionRequest, CheckoutSessionResponse, CheckoutStatusResponse
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -37,6 +40,15 @@ JWT_EXPIRATION_HOURS = int(os.environ['JWT_EXPIRATION_HOURS'])
 _PLANT_ID_API_KEY = os.environ['PLANT_ID_API_KEY']
 _STRAICO_API_KEY = os.environ['STRAICO_API_KEY']
 PLANT_ID_BASE_URL = "https://plant.id/api/v3"
+
+# Stripe Config
+STRIPE_API_KEY = os.environ['STRIPE_API_KEY']
+
+# Premium Packages (server-side only - never send amounts from frontend)
+PREMIUM_PACKAGES = {
+    "monthly": {"amount": 4.99, "currency": "usd", "days": 30, "label": "Monthly Premium"},
+    "yearly": {"amount": 39.99, "currency": "usd", "days": 365, "label": "Yearly Premium"},
+}
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -220,6 +232,15 @@ class ReminderResponse(BaseModel):
 
 class UpgradePremiumRequest(BaseModel):
     plan: str = "monthly"
+    origin_url: str = ""
+
+class RegisterPushTokenRequest(BaseModel):
+    push_token: str
+
+class SendNotificationRequest(BaseModel):
+    plant_id: Optional[str] = None
+    title: str = ""
+    body: str = ""
 
 
 # ==================== AUTH HELPERS ====================
@@ -325,33 +346,109 @@ async def get_ai_models(user: dict = Depends(get_current_user)):
     return {"models": models_list, "is_premium": is_premium}
 
 
-# ==================== PREMIUM / SUBSCRIPTION ====================
+# ==================== PREMIUM / STRIPE CHECKOUT ====================
+
+@api_router.post("/premium/checkout")
+async def create_checkout_session(http_request: Request, data: UpgradePremiumRequest, user: dict = Depends(get_current_user)):
+    """Create Stripe checkout session for premium upgrade"""
+    package = PREMIUM_PACKAGES.get(data.plan)
+    if not package:
+        raise HTTPException(status_code=400, detail="Invalid plan. Use 'monthly' or 'yearly'")
+
+    origin_url = data.origin_url
+    if not origin_url:
+        origin_url = str(http_request.base_url).rstrip('/')
+
+    success_url = f"{origin_url}/payment-success?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{origin_url}/payment-cancel"
+
+    host_url = str(http_request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+
+    checkout_request = CheckoutSessionRequest(
+        amount=package["amount"],
+        currency=package["currency"],
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "user_id": user["id"],
+            "plan": data.plan,
+            "user_email": user["email"],
+        }
+    )
+
+    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+
+    # Create payment transaction record
+    await db.payment_transactions.insert_one({
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "user_id": user["id"],
+        "user_email": user["email"],
+        "plan": data.plan,
+        "amount": package["amount"],
+        "currency": package["currency"],
+        "payment_status": "initiated",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+    return {"url": session.url, "session_id": session.session_id}
+
+@api_router.get("/premium/checkout/status/{session_id}")
+async def check_checkout_status(session_id: str, http_request: Request, user: dict = Depends(get_current_user)):
+    """Poll checkout session status and activate premium if paid"""
+    host_url = str(http_request.base_url)
+    webhook_url = f"{host_url}api/webhook/stripe"
+    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+
+    status: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+
+    # Update payment transaction
+    txn = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if txn:
+        update_data = {"payment_status": status.payment_status, "status": status.status}
+
+        # Only activate premium once per session
+        if status.payment_status == "paid" and txn.get("payment_status") != "paid":
+            plan = txn.get("plan", "monthly")
+            days = PREMIUM_PACKAGES.get(plan, {}).get("days", 30)
+            expires = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+            await db.users.update_one(
+                {"id": txn["user_id"]},
+                {"$set": {"is_premium": True, "premium_expires": expires}}
+            )
+            update_data["premium_activated"] = True
+            update_data["premium_expires"] = expires
+
+        await db.payment_transactions.update_one(
+            {"session_id": session_id},
+            {"$set": update_data}
+        )
+
+    return {
+        "status": status.status,
+        "payment_status": status.payment_status,
+        "amount_total": status.amount_total,
+        "currency": status.currency,
+    }
 
 @api_router.post("/premium/upgrade")
 async def upgrade_premium(data: UpgradePremiumRequest, user: dict = Depends(get_current_user)):
-    """Upgrade to premium (simulated - in production integrate Stripe/PayPal)"""
-    now = datetime.now(timezone.utc)
-    if data.plan == "monthly":
-        expires = now + timedelta(days=30)
-    elif data.plan == "yearly":
-        expires = now + timedelta(days=365)
-    else:
+    """Quick upgrade (for testing / direct activation)"""
+    package = PREMIUM_PACKAGES.get(data.plan)
+    if not package:
         raise HTTPException(status_code=400, detail="Invalid plan. Use 'monthly' or 'yearly'")
 
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(days=package["days"])
     await db.users.update_one(
         {"id": user["id"]},
         {"$set": {"is_premium": True, "premium_expires": expires.isoformat()}}
     )
     return {
-        "success": True,
-        "plan": data.plan,
-        "expires": expires.isoformat(),
-        "features": [
-            "Unlimited AI chats per day",
-            "Access to Claude Sonnet 4.5 & Claude Sonnet 4",
-            "Priority plant analysis",
-            "Detailed health reports"
-        ]
+        "success": True, "plan": data.plan, "expires": expires.isoformat(),
+        "features": ["Unlimited AI chats", "Claude Sonnet access", "Priority analysis", "Detailed health reports"]
     }
 
 @api_router.get("/premium/status")
@@ -367,8 +464,8 @@ async def get_premium_status(user: dict = Depends(get_current_user)):
         "daily_chat_limit": limit,
         "remaining_chats": max(0, limit - daily_count),
         "plans": {
-            "monthly": {"price": "$4.99/month", "features": ["Unlimited AI chats", "Claude Sonnet access", "Priority analysis"]},
-            "yearly": {"price": "$39.99/year", "features": ["Unlimited AI chats", "Claude Sonnet access", "Priority analysis", "Save 33%"]},
+            "monthly": {"price": "$4.99/month", "amount": 4.99},
+            "yearly": {"price": "$39.99/year", "amount": 39.99, "savings": "Save 33%"},
         }
     }
 
@@ -403,7 +500,7 @@ async def identify_plant(request: Request, data: PlantIdentifyRequest, user: dic
             raise HTTPException(status_code=429, detail="Plant.id API rate limit reached")
         if response.status_code not in (200, 201):
             logger.error(f"Plant.id error: {response.status_code}")
-            raise HTTPException(status_code=502, detail=f"Plant identification service error")
+            raise HTTPException(status_code=502, detail="Plant identification service error")
 
         result = response.json()
         is_plant = result.get("result", {}).get("is_plant", {})
@@ -683,6 +780,148 @@ async def get_chat_history(plant_id: str, user: dict = Depends(get_current_user)
         {"plant_id": plant_id, "user_id": user["id"]}, {"_id": 0}
     ).sort("created_at", -1).to_list(50)
     return chats
+
+
+# ==================== STRIPE WEBHOOK ====================
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
+    body = await request.body()
+    try:
+        import json
+        event = json.loads(body)
+        event_type = event.get("type", "")
+        logger.info(f"Stripe webhook: {event_type}")
+
+        if event_type == "checkout.session.completed":
+            session = event.get("data", {}).get("object", {})
+            session_id = session.get("id")
+            metadata = session.get("metadata", {})
+            user_id = metadata.get("user_id")
+            plan = metadata.get("plan", "monthly")
+
+            if user_id and session_id:
+                days = PREMIUM_PACKAGES.get(plan, {}).get("days", 30)
+                expires = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+                await db.users.update_one(
+                    {"id": user_id},
+                    {"$set": {"is_premium": True, "premium_expires": expires}}
+                )
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"payment_status": "paid", "premium_activated": True, "premium_expires": expires}}
+                )
+                logger.info(f"Premium activated for user {user_id} via webhook")
+
+        return {"received": True}
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return {"received": True}
+
+
+# ==================== PUSH NOTIFICATIONS ====================
+
+@api_router.post("/notifications/register")
+async def register_push_token(data: RegisterPushTokenRequest, user: dict = Depends(get_current_user)):
+    """Register Expo push notification token"""
+    if not data.push_token.startswith("ExponentPushToken["):
+        raise HTTPException(status_code=400, detail="Invalid Expo push token format")
+
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"push_token": data.push_token}}
+    )
+    return {"success": True, "message": "Push token registered"}
+
+@api_router.get("/notifications/status")
+async def get_notification_status(user: dict = Depends(get_current_user)):
+    """Check if push notifications are enabled"""
+    has_token = bool(user.get("push_token"))
+    return {"enabled": has_token, "token_registered": has_token}
+
+@api_router.post("/notifications/check-reminders")
+async def check_and_send_reminders(user: dict = Depends(get_current_user)):
+    """Check due reminders and send push notifications"""
+    push_token = user.get("push_token")
+    if not push_token:
+        return {"sent": 0, "message": "No push token registered"}
+
+    now = datetime.now(timezone.utc)
+    reminders = await db.reminders.find({
+        "user_id": user["id"],
+        "enabled": True,
+    }, {"_id": 0}).to_list(100)
+
+    due_reminders = []
+    for r in reminders:
+        if r.get("next_reminder"):
+            next_time = datetime.fromisoformat(r["next_reminder"])
+            if next_time <= now:
+                due_reminders.append(r)
+        else:
+            due_reminders.append(r)
+
+    sent_count = 0
+    for r in due_reminders:
+        plant = await db.plants.find_one({"id": r["plant_id"]}, {"_id": 0, "photo_base64": 0})
+        plant_name = plant.get("species_name", "Your plant") if plant else "Your plant"
+
+        notification = {
+            "to": push_token,
+            "title": f"Time to water {plant_name}!",
+            "body": f"Your {plant_name} needs {r.get('reminder_type', 'watering')}. Don't forget!",
+            "data": {"plant_id": r["plant_id"], "reminder_id": r["id"]},
+            "sound": "default",
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as http_client:
+                resp = await http_client.post(
+                    "https://exp.host/--/api/v2/push/send",
+                    json=notification,
+                    headers={"Content-Type": "application/json"}
+                )
+                if resp.status_code == 200:
+                    sent_count += 1
+                    # Update next reminder time
+                    new_next = (now + timedelta(days=r.get("frequency_days", 3))).isoformat()
+                    await db.reminders.update_one(
+                        {"id": r["id"]},
+                        {"$set": {"next_reminder": new_next, "last_notified": now.isoformat()}}
+                    )
+        except Exception as e:
+            logger.error(f"Push notification error: {str(e)}")
+
+    return {"sent": sent_count, "total_due": len(due_reminders)}
+
+@api_router.post("/notifications/test")
+async def send_test_notification(user: dict = Depends(get_current_user)):
+    """Send a test push notification"""
+    push_token = user.get("push_token")
+    if not push_token:
+        raise HTTPException(status_code=400, detail="No push token registered. Enable notifications first.")
+
+    notification = {
+        "to": push_token,
+        "title": "GreenPlantAI Test",
+        "body": "Push notifications are working! You'll receive plant care reminders here.",
+        "data": {"type": "test"},
+        "sound": "default",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as http_client:
+            resp = await http_client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json=notification,
+                headers={"Content-Type": "application/json"}
+            )
+            if resp.status_code == 200:
+                return {"success": True, "message": "Test notification sent!"}
+            return {"success": False, "message": f"Expo push API error: {resp.status_code}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==================== SECURITY INFO ====================
