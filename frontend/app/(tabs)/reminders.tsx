@@ -1,16 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, Alert, Switch,
+  ActivityIndicator, RefreshControl, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { useAuth, API_BASE } from '@/src/AuthContext';
+import { useDialog } from '@/src/DialogContext';
 import { Colors, Spacing, Radius } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RemindersScreen() {
   const { token } = useAuth();
+  const { showAlert } = useDialog();
   const [reminders, setReminders] = useState<any[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,10 +47,11 @@ export default function RemindersScreen() {
   };
 
   const deleteReminder = async (id: string) => {
-    Alert.alert('Delete Reminder', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    showAlert('Delete Reminder', 'Are you sure?', [
+      { label: 'Cancel', kind: 'cancel' },
       {
-        text: 'Delete', style: 'destructive',
+        label: 'Delete',
+        kind: 'destructive',
         onPress: async () => {
           await fetch(`${API_BASE}/reminders/${id}`, {
             method: 'DELETE',

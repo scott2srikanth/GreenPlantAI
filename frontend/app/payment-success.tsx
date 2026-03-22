@@ -10,13 +10,17 @@ export default function PaymentSuccessScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const { session_id } = useLocalSearchParams<{ session_id: string }>();
-  const [status, setStatus] = useState<string>('checking');
+  const [status, setStatus] = useState<'checking' | 'success' | 'pending' | 'error'>('checking');
   const [paymentStatus, setPaymentStatus] = useState<string>('');
 
   useEffect(() => {
-    if (session_id) checkPayment();
-    else setStatus('success');
-  }, [session_id]);
+    if (!session_id) {
+      setStatus('error');
+      return;
+    }
+    if (!token) return;
+    checkPayment();
+  }, [session_id, token]);
 
   const checkPayment = async () => {
     try {
@@ -27,9 +31,11 @@ export default function PaymentSuccessScreen() {
         const data = await res.json();
         setPaymentStatus(data.payment_status);
         setStatus(data.payment_status === 'paid' ? 'success' : 'pending');
+      } else {
+        setStatus('error');
       }
     } catch (e) {
-      setStatus('success');
+      setStatus('error');
     }
   };
 
@@ -41,7 +47,7 @@ export default function PaymentSuccessScreen() {
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.title}>Verifying Payment...</Text>
           </>
-        ) : (
+        ) : status === 'success' ? (
           <>
             <View style={styles.iconWrap}>
               <Ionicons name="checkmark-circle" size={72} color={Colors.healthy} />
@@ -62,6 +68,39 @@ export default function PaymentSuccessScreen() {
               testID="payment-continue-btn"
             >
               <Text style={styles.continueBtnText}>Continue to App</Text>
+            </TouchableOpacity>
+          </>
+        ) : status === 'pending' ? (
+          <>
+            <View style={styles.iconWrap}>
+              <Ionicons name="time" size={72} color={Colors.warning} />
+            </View>
+            <Text style={styles.title}>Payment Still Processing</Text>
+            <Text style={styles.subtitle}>
+              {paymentStatus ? `Current payment status: ${paymentStatus}. ` : ''}
+              Please check again in a moment from your profile.
+            </Text>
+            <TouchableOpacity
+              style={styles.continueBtn}
+              onPress={() => router.replace('/(tabs)/profile')}
+              testID="payment-pending-btn"
+            >
+              <Text style={styles.continueBtnText}>Go to Profile</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={styles.iconWrap}>
+              <Ionicons name="alert-circle" size={72} color={Colors.danger} />
+            </View>
+            <Text style={styles.title}>We Couldn&apos;t Verify Your Payment</Text>
+            <Text style={styles.subtitle}>Please return to your profile and check your subscription status.</Text>
+            <TouchableOpacity
+              style={styles.continueBtn}
+              onPress={() => router.replace('/(tabs)/profile')}
+              testID="payment-error-btn"
+            >
+              <Text style={styles.continueBtnText}>Go to Profile</Text>
             </TouchableOpacity>
           </>
         )}

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Image,
-  ActivityIndicator, Alert, TextInput, Modal,
+  ActivityIndicator, TextInput, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth, API_BASE } from '@/src/AuthContext';
+import { useDialog } from '@/src/DialogContext';
 import { Colors, Spacing, Radius } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,6 +15,7 @@ type TabKey = 'about' | 'health' | 'care' | 'problems';
 export default function PlantDetailScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { showAlert } = useDialog();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [plant, setPlant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export default function PlantDetailScreen() {
       body: JSON.stringify({}),
     });
     fetchPlant();
-    Alert.alert('Watered!', 'Plant watering logged');
+    showAlert('Watered!', 'Plant watering logged');
   };
 
   const addReminder = async () => {
@@ -65,10 +67,10 @@ export default function PlantDetailScreen() {
         }),
       });
       if (res.ok) {
-        Alert.alert('Reminder Set!', `Watering reminder every ${reminderDays} days`);
+        showAlert('Reminder Set!', `Watering reminder every ${reminderDays} days`);
         setShowReminderModal(false);
       }
-    } catch (e) { Alert.alert('Error', 'Failed to create reminder'); }
+    } catch (e) { showAlert('Error', 'Failed to create reminder'); }
     finally { setSavingReminder(false); }
   };
 
@@ -91,15 +93,16 @@ export default function PlantDetailScreen() {
         await fetchPlant();
         setShowEditModal(false);
       }
-    } catch (e) { Alert.alert('Error', 'Failed to update'); }
+    } catch (e) { showAlert('Error', 'Failed to update'); }
     finally { setSavingEdit(false); }
   };
 
   const deletePlant = () => {
-    Alert.alert('Remove Plant', 'Remove this plant from your garden?', [
-      { text: 'Cancel', style: 'cancel' },
+    showAlert('Remove Plant', 'Remove this plant from your garden?', [
+      { label: 'Cancel', kind: 'cancel' },
       {
-        text: 'Remove', style: 'destructive',
+        label: 'Remove',
+        kind: 'destructive',
         onPress: async () => {
           await fetch(`${API_BASE}/garden/${id}`, {
             method: 'DELETE', headers: { Authorization: `Bearer ${token}` },

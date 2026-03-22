@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, KeyboardAvoidingView, Platform, ActivityIndicator,
-  Modal, Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth, API_BASE } from '@/src/AuthContext';
+import { useDialog } from '@/src/DialogContext';
 import { Colors, Spacing, Radius } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,6 +32,7 @@ interface AIModel {
 export default function BotanistChatScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { showAlert } = useDialog();
   const { plantId, plantName } = useLocalSearchParams<{ plantId: string; plantName: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -112,9 +114,9 @@ export default function BotanistChatScreen() {
       } else {
         const errData = await res.json().catch(() => ({ detail: 'Unknown error' }));
         if (res.status === 403) {
-          Alert.alert('Premium Required', errData.detail || 'Upgrade to access this model', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Upgrade', onPress: () => router.push('/(tabs)/profile') },
+          showAlert('Premium Required', errData.detail || 'Upgrade to access this model', [
+            { label: 'Cancel', kind: 'cancel' },
+            { label: 'Upgrade', kind: 'primary', onPress: () => router.push('/(tabs)/profile') },
           ]);
           setMessages(prev => [...prev, {
             id: `err-${Date.now()}`, role: 'assistant',
@@ -304,14 +306,14 @@ export default function BotanistChatScreen() {
                 ]}
                 onPress={() => {
                   if (!model.accessible) {
-                    Alert.alert('Premium Required', model.locked_reason || 'Upgrade to access this model', [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Upgrade', onPress: () => { setShowModelPicker(false); router.push('/(tabs)/profile'); } },
+                    showAlert('Premium Required', model.locked_reason || 'Upgrade to access this model', [
+                      { label: 'Cancel', kind: 'cancel' },
+                      { label: 'Upgrade', kind: 'primary', onPress: () => { setShowModelPicker(false); router.push('/(tabs)/profile'); } },
                     ]);
                     return;
                   }
                   if (model.key === 'ollama-local') {
-                    Alert.alert('Ollama', 'Local Ollama support requires setup. Coming soon!');
+                    showAlert('Ollama', 'Local Ollama support requires setup. Coming soon!');
                     return;
                   }
                   setSelectedModel(model.key);

@@ -63,9 +63,18 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>{getGreeting()},</Text>
             <Text style={styles.userName}>{user?.name || 'Plant Lover'}</Text>
           </View>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={24} color={Colors.primary} />
-          </View>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={() => router.push('/profile')}
+            activeOpacity={0.85}
+            testID="home-profile-btn"
+          >
+            {user?.avatar_url ? (
+              <Image source={{ uri: user.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={24} color={Colors.primary} />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Scan Card */}
@@ -201,8 +210,9 @@ const styles = StyleSheet.create({
   userName: { fontSize: 26, fontWeight: '700', color: Colors.textPrimary, marginTop: 2 },
   avatarContainer: {
     width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.secondary,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
+  avatarImage: { width: '100%', height: '100%' },
   scanCard: {
     marginHorizontal: Spacing.lg, backgroundColor: Colors.primary,
     borderRadius: Radius.lg, padding: Spacing.lg, marginBottom: Spacing.lg,

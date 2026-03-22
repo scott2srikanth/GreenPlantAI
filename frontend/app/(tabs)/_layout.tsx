@@ -2,20 +2,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/src/theme';
 import { useAuth } from '@/src/AuthContext';
-import { useRouter } from 'expo-router';
 import React from 'react';
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
-  React.useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/');
-    }
-  }, [user, loading]);
-
-  if (loading || !user) return null;
+  if (loading) return null;
+  if (!user) return null;
 
   return (
     <Tabs
@@ -61,6 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          href: null,
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}

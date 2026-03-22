@@ -1,25 +1,33 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth, API_BASE } from '@/src/AuthContext';
+import { useDialog } from '@/src/DialogContext';
+import { useScanSession } from '@/src/ScanSessionContext';
 import { Colors, Spacing, Radius } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ResultsScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { showAlert } = useDialog();
   const params = useLocalSearchParams<{ resultData: string; imageBase64: string }>();
+  const { resultData, imageBase64, clearScanResult } = useScanSession();
   const [saving, setSaving] = useState(false);
 
-  let data: any = null;
-  try {
-    data = params.resultData ? JSON.parse(params.resultData) : null;
-  } catch {
-    data = null;
-  }
+  const data = useMemo(() => {
+    if (resultData) return resultData;
+    try {
+      return params.resultData ? JSON.parse(params.resultData) : null;
+    } catch {
+      return null;
+    }
+  }, [params.resultData, resultData]);
+
+  const resultImageBase64 = imageBase64 || params.imageBase64 || null;
 
   const topMatch = data?.top_match;
   const isPlant = data?.is_plant?.binary !== false;
@@ -29,7 +37,7 @@ export default function ResultsScreen() {
   const suggestions = data?.suggestions || [];
 
   const saveToGarden = async () => {
-    if (!topMatch) return;
+    if (!topMatch || !isPlant) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/garden`, {
@@ -42,7 +50,7 @@ export default function ResultsScreen() {
           species_name: topMatch.name,
           common_names: topMatch.common_names || [],
           description: topMatch.description,
-          photo_base64: params.imageBase64 || null,
+          photo_base64: resultImageBase64,
           watering_info: topMatch.best_watering,
           light_condition: topMatch.best_light_condition,
           soil_type: topMatch.best_soil_type,
@@ -54,15 +62,16 @@ export default function ResultsScreen() {
         }),
       });
       if (res.ok) {
-        Alert.alert('Saved!', `${topMatch.name} has been added to your garden.`, [
-          { text: 'View Garden', onPress: () => router.replace('/(tabs)/garden') },
-          { text: 'OK' },
+        clearScanResult();
+        showAlert('Saved!', `${topMatch.name} has been added to your garden.`, [
+          { label: 'OK', kind: 'cancel' },
+          { label: 'View Garden', kind: 'primary', onPress: () => router.replace('/(tabs)/garden') },
         ]);
       } else {
-        Alert.alert('Error', 'Failed to save plant');
+        showAlert('Error', 'Failed to save plant');
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to save plant');
+      showAlert('Error', 'Failed to save plant');
     } finally {
       setSaving(false);
     }
@@ -94,10 +103,10 @@ export default function ResultsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Image Preview */}
-        {params.imageBase64 && (
+        {resultImageBase64 && (
           <View style={styles.imageWrap}>
             <Image
-              source={{ uri: `data:image/jpeg;base64,${params.imageBase64}` }}
+              source={{ uri: `data:image/jpeg;base64,${resultImageBase64}` }}
               style={styles.resultImage}
             />
           </View>
@@ -246,7 +255,7 @@ export default function ResultsScreen() {
         )}
 
         {/* Save Button */}
-        {topMatch && (
+        {topMatch && isPlant && (
           <TouchableOpacity
             style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
             onPress={saveToGarden}

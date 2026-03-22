@@ -7,12 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth, API_BASE } from '@/src/AuthContext';
+import { useScanSession } from '@/src/ScanSessionContext';
 import { Colors, Spacing, Radius } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ScanScreen() {
   const router = useRouter();
   const { token } = useAuth();
+  const { setScanResult } = useScanSession();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,15 +85,12 @@ export default function ScanScreen() {
       }
 
       const data = await res.json();
-      
-      // Navigate to results with data
-      router.push({
-        pathname: '/results',
-        params: {
-          resultData: JSON.stringify(data),
-          imageBase64: imageBase64,
-        },
+
+      setScanResult({
+        resultData: data,
+        imageBase64,
       });
+      router.push('/results');
     } catch (e: any) {
       setError(e.message || 'Failed to identify plant');
     } finally {

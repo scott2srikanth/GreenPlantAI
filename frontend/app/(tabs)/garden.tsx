@@ -1,16 +1,18 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList,
-  ActivityIndicator, RefreshControl, Image, Alert,
+  ActivityIndicator, RefreshControl, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth, API_BASE } from '@/src/AuthContext';
+import { useDialog } from '@/src/DialogContext';
 import { Colors, Spacing, Radius } from '@/src/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function GardenScreen() {
   const { token } = useAuth();
+  const { showAlert } = useDialog();
   const router = useRouter();
   const [plants, setPlants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,10 +35,11 @@ export default function GardenScreen() {
   useFocusEffect(useCallback(() => { fetchPlants(); }, [token]));
 
   const deletePlant = async (id: string) => {
-    Alert.alert('Remove Plant', 'Remove this plant from your garden?', [
-      { text: 'Cancel', style: 'cancel' },
+    showAlert('Remove Plant', 'Remove this plant from your garden?', [
+      { label: 'Cancel', kind: 'cancel' },
       {
-        text: 'Remove', style: 'destructive',
+        label: 'Remove',
+        kind: 'destructive',
         onPress: async () => {
           await fetch(`${API_BASE}/garden/${id}`, {
             method: 'DELETE',

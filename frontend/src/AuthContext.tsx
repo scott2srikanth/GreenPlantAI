@@ -9,6 +9,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  avatar_url?: string | null;
   created_at: string;
 }
 
@@ -17,7 +18,9 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
+  requestVerificationCode: (email: string) => Promise<{ expires_in_minutes: number }>;
+  register: (email: string, password: string, name: string, verificationCode: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -93,11 +96,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   };
 
+  const googleLogin = async (idToken: string) => {
+    const res = await fetch(`${API_BASE}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_token: idToken }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Google Sign-In failed');
+    }
+    const data = await res.json();
+    await storeToken('auth_token', data.access_token);
+    setToken(data.access_token);
+    setUser(data.user);
+  };
+
   const register = async (email: string, password: string, name: string) => {
+    const res = await fetch(`${API_BASE}/auth/request-verification-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed to send verification code');
+    }
+    return await res.json();
+  };
+
+  const completeRegistration = async (email: string, password: string, name: string, verificationCode: string) => {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, verification_code: verificationCode }),
     });
     if (!res.ok) {
       const err = await res.json();
@@ -116,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, googleLogin, requestVerificationCode: register, register: completeRegistration, logout }}>
       {children}
     </AuthContext.Provider>
   );
