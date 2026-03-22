@@ -432,11 +432,21 @@ def build_admin_login_page(error: str = "") -> str:
 <style>
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f7f2;color:#1f2937;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}}
 .card{{background:#fff;border:1px solid #d8e2d2;border-radius:24px;box-shadow:0 20px 50px rgba(34,54,24,.12);padding:32px;width:min(420px,92vw)}}
+.brand{{display:flex;align-items:center;gap:14px;margin-bottom:18px}}
+.brand-mark{{width:58px;height:58px;border-radius:18px;background:#edf7ec;border:1px solid #d8e2d2;display:grid;place-items:center;box-shadow:0 12px 30px rgba(34,54,24,.08)}}
+.brand-copy{{display:flex;flex-direction:column;gap:4px}}
+.eyebrow{{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:700}}
 h1{{margin:0 0 8px;color:#2f5233}}p{{color:#5f6b66}}label{{display:block;margin:16px 0 8px;font-weight:600}}input{{width:100%;padding:14px 16px;border-radius:16px;border:1px solid #d8e2d2;font-size:15px;box-sizing:border-box}}
 button{{width:100%;margin-top:20px;border:none;border-radius:999px;background:#2f5233;color:#fff;padding:14px 18px;font-size:16px;font-weight:700;cursor:pointer}}
 .error{{margin-top:12px;background:#fef2f2;border:1px solid #fecaca;color:#b45309;padding:12px 14px;border-radius:14px}}
 </style></head><body><form class="card" method="post" action="/admin/login">
-<h1>Admin Dashboard</h1><p>Sign in to manage users, AI usage, subscriptions, transactions, logs, and API keys.</p>
+<div class="brand">
+<div class="brand-mark" aria-hidden="true">
+<svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M19.6 4.4c-5.7-.6-10.1.8-12.8 3.5-3.4 3.4-3.5 8.6-3.1 11 .2 1 1 1.8 2 2 2.4.4 7.6.3 11-3.1 2.7-2.7 4.1-7.1 3.5-12.8a1 1 0 0 0-.6-.8z" fill="#2f5233"/><path d="M8 15c2.8-2 5.3-4.5 7.3-7.3" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>
+</div>
+<div class="brand-copy"><div class="eyebrow">GreenPlantAI</div><h1>Admin Dashboard</h1></div>
+</div>
+<p>Sign in to manage users, AI usage, subscriptions, transactions, logs, and API keys.</p>
 {error_html}
 <label>Email</label><input type="email" name="email" autocomplete="username" required>
 <label>Password</label><input type="password" name="password" autocomplete="current-password" required>
@@ -452,6 +462,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .wrap{max-width:1280px;margin:0 auto;padding:24px}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 h1{margin:0;color:#2f5233}.actions a{display:inline-block;background:#fff;border:1px solid #d8e2d2;border-radius:999px;padding:10px 14px;text-decoration:none;color:#2f5233;font-weight:600}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{width:64px;height:64px;border-radius:20px;background:#edf7ec;border:1px solid #d8e2d2;display:grid;place-items:center;box-shadow:0 12px 30px rgba(34,54,24,.08)}
+.brand-copy{display:flex;flex-direction:column;gap:4px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
 .card,.panel{background:#fff;border:1px solid #d8e2d2;border-radius:24px;box-shadow:0 20px 50px rgba(34,54,24,.08)}
 .card{padding:18px}.metric{font-size:30px;font-weight:800;color:#2f5233}.label{color:#5f6b66;font-size:13px}
@@ -462,8 +476,11 @@ input,select,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px
 button{border:none;border-radius:999px;background:#2f5233;color:#fff;padding:10px 14px;font-weight:700;cursor:pointer}
 .muted{color:#6b7280}.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#edf7ec;color:#2f5233;font-size:12px;font-weight:700}
 .stack{display:flex;flex-direction:column;gap:16px}.small{font-size:12px}.danger{background:#fff4f4;color:#b42318}.success{background:#edf7ec;color:#2f5233}
+.statusbar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.dot{width:10px;height:10px;border-radius:999px;background:#2f5233;box-shadow:0 0 0 4px rgba(47,82,51,.12)}
+.paused{background:#b45309;box-shadow:0 0 0 4px rgba(180,83,9,.12)}
 </style></head><body><div class="wrap">
-<div class="top"><div><h1>GreenPlantAI Admin</h1><div class="muted">Users, AI usage, subscriptions, transactions, logs, and API key controls.</div></div><div class="actions"><a href="/admin/logout">Sign Out</a></div></div>
+<div class="top"><div><div class="brand"><div class="brand-mark" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M19.6 4.4c-5.7-.6-10.1.8-12.8 3.5-3.4 3.4-3.5 8.6-3.1 11 .2 1 1 1.8 2 2 2.4.4 7.6.3 11-3.1 2.7-2.7 4.1-7.1 3.5-12.8a1 1 0 0 0-.6-.8z" fill="#2f5233"/><path d="M8 15c2.8-2 5.3-4.5 7.3-7.3" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg></div><div class="brand-copy"><div class="eyebrow">GreenPlantAI</div><h1>Admin Dashboard</h1></div></div><div class="muted">Users, AI usage, subscriptions, transactions, logs, and API key controls.</div><div class="statusbar"><span id="refresh-dot" class="dot"></span><span id="refresh-status" class="small muted">Live auto-refresh on</span></div></div><div class="actions"><a href="/admin/logout">Sign Out</a></div></div>
 <div id="summary" class="grid"></div>
 <div class="panels">
 <div class="stack">
@@ -476,8 +493,14 @@ button{border:none;border-radius:999px;background:#2f5233;color:#fff;padding:10p
 </div></div>
 <script>
 const fmt=v=>v==null?'—':String(v);
+let bootInFlight=false;
+let dirty=false;
+let lastRefreshAt=null;
 async function req(url, options={}){ const res=await fetch(url,{headers:{'Content-Type':'application/json'},...options}); if(!res.ok){ throw new Error((await res.json().catch(()=>({detail:'Request failed'}))).detail||'Request failed'); } return res.json(); }
 function summaryCard(label, value, sub=''){ return `<div class="card"><div class="metric">${fmt(value)}</div><div class="label">${label}</div><div class="small muted">${sub}</div></div>`; }
+function isEditing(){ const active=document.activeElement; return !!active && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName); }
+function updateRefreshStatus(){ const label=document.getElementById('refresh-status'); const dot=document.getElementById('refresh-dot'); if(!label||!dot) return; if(dirty || isEditing()){ label.textContent='Auto-refresh paused while editing'; dot.className='dot paused'; return; } if(lastRefreshAt){ label.textContent=`Last synced ${new Date(lastRefreshAt).toLocaleTimeString()}`; } else { label.textContent='Live auto-refresh on'; } dot.className='dot'; }
+document.addEventListener('input', (event)=>{ if(event.target && ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)){ dirty=true; updateRefreshStatus(); }});
 async function loadSummary(){ const data=await req('/api/admin/overview'); document.getElementById('summary').innerHTML=[
 summaryCard('Users', data.users.total, `${data.users.premium} premium / ${data.users.google_auth} Google auth`),
 summaryCard('AI Requests', data.ai_usage.total_requests, `${data.ai_usage.total_tokens||0} tokens tracked`),
@@ -485,13 +508,15 @@ summaryCard('Transactions', data.transactions.total, `${data.transactions.paid} 
 summaryCard('Logs', data.logs.total_recent, `${data.logs.errors} errors in recent logs`),
 ].join(''); }
 async function loadUsers(){ const data=await req('/api/admin/users'); document.getElementById('users').innerHTML=`<table><thead><tr><th>User</th><th>Subscription</th><th>Chats</th><th>Save</th></tr></thead><tbody>${data.users.map(u=>`<tr><td><div><strong>${fmt(u.name)}</strong></div><div class="muted">${fmt(u.email)}</div><div class="small muted">${fmt(u.auth_provider||'password')}</div></td><td><label class="small"><input type="checkbox" ${u.is_premium?'checked':''} data-premium="${u.id}"> Premium</label><input id="exp-${u.id}" placeholder="ISO expiry or blank" value="${u.premium_expires||''}"></td><td><span class="tag">${u.total_chats_used||0} chats</span></td><td><button onclick="saveUser('${u.id}')">Update</button></td></tr>`).join('')}</tbody></table>`; }
-async function saveUser(id){ const payload={ is_premium: document.querySelector(`[data-premium="${id}"]`).checked, premium_expires: document.getElementById(`exp-${id}`).value || null }; await req(`/api/admin/users/${id}`, {method:'PATCH', body: JSON.stringify(payload)}); await boot(); }
+async function saveUser(id){ const payload={ is_premium: document.querySelector(`[data-premium="${id}"]`).checked, premium_expires: document.getElementById(`exp-${id}`).value || null }; await req(`/api/admin/users/${id}`, {method:'PATCH', body: JSON.stringify(payload)}); dirty=false; await boot(); }
 async function loadTransactions(){ const data=await req('/api/admin/transactions'); document.getElementById('transactions').innerHTML=`<table><thead><tr><th>Transaction</th><th>Status</th><th>Notes</th><th>Save</th></tr></thead><tbody>${data.transactions.map(t=>`<tr><td><div><strong>${fmt(t.plan)}</strong></div><div class="muted">${fmt(t.user_email)}</div><div class="small muted">${fmt(t.session_id)}</div></td><td><input id="ps-${t.id}" value="${t.payment_status||''}"><input id="st-${t.id}" value="${t.status||''}" style="margin-top:8px"></td><td><textarea id="nt-${t.id}" rows="3">${t.notes||''}</textarea></td><td><button onclick="saveTxn('${t.id}')">Update</button></td></tr>`).join('')}</tbody></table>`; }
-async function saveTxn(id){ const payload={ payment_status: document.getElementById(`ps-${id}`).value||null, status: document.getElementById(`st-${id}`).value||null, notes: document.getElementById(`nt-${id}`).value||null }; await req(`/api/admin/transactions/${id}`, {method:'PATCH', body: JSON.stringify(payload)}); await boot(); }
+async function saveTxn(id){ const payload={ payment_status: document.getElementById(`ps-${id}`).value||null, status: document.getElementById(`st-${id}`).value||null, notes: document.getElementById(`nt-${id}`).value||null }; await req(`/api/admin/transactions/${id}`, {method:'PATCH', body: JSON.stringify(payload)}); dirty=false; await boot(); }
 async function loadKeys(){ const data=await req('/api/admin/api-keys'); document.getElementById('keys').innerHTML=`<div class="stack"><div class="small muted">Update runtime keys without rebuilding the container. Values are stored in Mongo and masked in the dashboard.</div><table><tbody>${data.keys.map(k=>`<tr><td><strong>${k.label}</strong><div class="small muted">Current: ${fmt(k.masked_value)} (${k.source})</div></td><td><input id="key-${k.name}" placeholder="Paste new value to update"></td></tr>`).join('')}</tbody></table><button onclick="saveKeys()">Save API Keys</button></div>`; }
-async function saveKeys(){ const payload={ plant_id_api_key: document.getElementById('key-plant_id_api_key')?.value||null, straico_api_key: document.getElementById('key-straico_api_key')?.value||null, stripe_api_key: document.getElementById('key-stripe_api_key')?.value||null }; await req('/api/admin/api-keys', {method:'PUT', body: JSON.stringify(payload)}); await boot(); }
+async function saveKeys(){ const payload={ plant_id_api_key: document.getElementById('key-plant_id_api_key')?.value||null, straico_api_key: document.getElementById('key-straico_api_key')?.value||null, stripe_api_key: document.getElementById('key-stripe_api_key')?.value||null }; await req('/api/admin/api-keys', {method:'PUT', body: JSON.stringify(payload)}); dirty=false; await boot(); }
 async function loadLogs(){ const data=await req('/api/admin/logs'); document.getElementById('logs').innerHTML=`<table><thead><tr><th>Time</th><th>Level</th><th>Event</th><th>Message</th></tr></thead><tbody>${data.logs.map(l=>`<tr><td class="small">${fmt(l.created_at)}</td><td><span class="tag ${l.level==='error'?'danger':'success'}">${fmt(l.level)}</span></td><td>${fmt(l.event)}</td><td>${fmt(l.message)}</td></tr>`).join('')}</tbody></table>`; }
-async function boot(){ try{ await Promise.all([loadSummary(), loadUsers(), loadTransactions(), loadKeys(), loadLogs()]); }catch(e){ document.body.innerHTML=`<div class="wrap"><div class="panel"><h2>Admin Error</h2><p>${e.message}</p><p><a href="/admin/login">Sign in again</a></p></div></div>`; } }
+async function boot(){ if(bootInFlight) return; bootInFlight=true; try{ await Promise.all([loadSummary(), loadUsers(), loadTransactions(), loadKeys(), loadLogs()]); lastRefreshAt=Date.now(); updateRefreshStatus(); }catch(e){ document.body.innerHTML=`<div class="wrap"><div class="panel"><h2>Admin Error</h2><p>${e.message}</p><p><a href="/admin/login">Sign in again</a></p></div></div>`; } finally { bootInFlight=false; } }
+setInterval(()=>{ if(document.hidden || dirty || isEditing()) { updateRefreshStatus(); return; } boot(); }, 5000);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !dirty && !isEditing()) boot(); else updateRefreshStatus(); });
 boot();
 </script></div></body></html>"""
 
