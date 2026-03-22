@@ -278,6 +278,7 @@ class UpgradePremiumRequest(BaseModel):
 class UpiPaymentLinkRequest(BaseModel):
     plan: str = "monthly"
     country_code: str = "US"
+    test_mode: bool = False
 
 class RegisterPushTokenRequest(BaseModel):
     push_token: str
@@ -939,13 +940,30 @@ async def get_premium_status(
 async def create_upi_payment_link(data: UpiPaymentLinkRequest, user: dict = Depends(get_current_user)):
     if not UPI_VPA:
         raise HTTPException(status_code=503, detail="UPI payments are not configured")
-    quote_data = await get_localized_quote(data.plan, data.country_code)
-    if quote_data["currency"] != "INR":
-        raise HTTPException(status_code=400, detail="UPI payments currently support India pricing only")
+    if data.test_mode:
+        quote_data = {
+            "package_label": "Google Pay Test Payment",
+            "total_amount": Decimal("1.00"),
+            "subtotal_amount": Decimal("1.00"),
+            "tax_amount": Decimal("0.00"),
+            "tax_name": None,
+            "base_amount": Decimal("0.00"),
+            "exchange_rate": Decimal("0.00"),
+            "exchange_rate_source": "manual-test",
+            "currency": "INR",
+        }
+    else:
+        quote_data = await get_localized_quote(data.plan, data.country_code)
+        if quote_data["currency"] != "INR":
+            raise HTTPException(status_code=400, detail="UPI payments currently support India pricing only")
 
     txn_ref = f"greenplantai-{user['id'][:8]}-{uuid.uuid4().hex[:10]}"
     amount = f"{quote_data['total_amount']:.2f}"
-    note = f"{quote_data['package_label']} for {user['email']}"
+    note = (
+        f"Google Pay test payment for {user['email']}"
+        if data.test_mode
+        else f"{quote_data['package_label']} for {user['email']}"
+    )
     upi_base = (
         f"pa={UPI_VPA}"
         f"&pn={quote(UPI_PAYEE_NAME)}"
@@ -970,6 +988,7 @@ async def create_upi_payment_link(data: UpiPaymentLinkRequest, user: dict = Depe
         "currency": "inr",
         "payment_status": "pending-upi",
         "payment_method": "upi",
+        "test_mode": data.test_mode,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
 
@@ -986,7 +1005,12 @@ async def create_upi_payment_link(data: UpiPaymentLinkRequest, user: dict = Depe
         "exchange_rate": quote_data["exchange_rate"],
         "exchange_rate_source": quote_data["exchange_rate_source"],
         "note": note,
-        "message": "This opens a manual UPI payment. Premium is not auto-activated until you confirm payment on the backend."
+        "test_mode": data.test_mode,
+        "message": (
+            "This opens a Rs 1 Google Pay test payment. It does not activate premium."
+            if data.test_mode
+            else "This opens a manual UPI payment. Premium is not auto-activated until you confirm payment on the backend."
+        )
     }
 
 

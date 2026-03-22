@@ -63,7 +63,7 @@ export default function ProfileScreen() {
   const startCheckout = async (plan: string, entryPoint: 'stripe' | 'gpay') => {
     setLoadingCheckout(`${plan}-${entryPoint}`);
     try {
-      const originUrl = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+      const originUrl = (process.env.EXPO_PUBLIC_BACKEND_URL || '').replace(/\/+$/, '');
       const res = await fetch(`${API_BASE}/premium/checkout`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -106,13 +106,24 @@ export default function ProfileScreen() {
     );
   };
 
-  const startGooglePay = async (plan: string) => {
-    setLoadingCheckout(`${plan}-gpay`);
+  const handleGooglePayTestPay = async () => {
+    showAlert(
+      'Google Pay Test',
+      'This opens a Rs 1 Google Pay test payment. It is only for testing the wallet flow and does not activate premium.',
+      [
+        { label: 'Cancel', kind: 'cancel' },
+        { label: 'Continue', kind: 'primary', onPress: () => startGooglePay('monthly', true) },
+      ]
+    );
+  };
+
+  const startGooglePay = async (plan: string, testMode = false) => {
+    setLoadingCheckout(testMode ? 'gpay-test' : `${plan}-gpay`);
     try {
       const res = await fetch(`${API_BASE}/premium/upi-link`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, country_code: countryCode }),
+        body: JSON.stringify({ plan, country_code: countryCode, test_mode: testMode }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Failed to create UPI payment link' }));
@@ -123,8 +134,10 @@ export default function ProfileScreen() {
       const data = await res.json();
       const taxLine = data.tax_name ? `\n${data.tax_name}: Rs ${Number(data.tax_amount || 0).toFixed(2)}` : '';
       showAlert(
-        'Google Pay Amount',
-        `You are about to pay Rs ${Number(data.amount || 0).toFixed(2)}.${taxLine}\nExchange rate used: ${Number(data.exchange_rate || 0).toFixed(4)} INR per USD.`,
+        testMode ? 'Google Pay Test Amount' : 'Google Pay Amount',
+        testMode
+          ? `You are about to pay Rs ${Number(data.amount || 0).toFixed(2)} as a test payment.`
+          : `You are about to pay Rs ${Number(data.amount || 0).toFixed(2)}.${taxLine}\nExchange rate used: ${Number(data.exchange_rate || 0).toFixed(4)} INR per USD.`,
         [
           { label: 'Cancel', kind: 'cancel' },
           {
@@ -335,6 +348,24 @@ export default function ProfileScreen() {
                   }]} />
                 </View>
               </View>
+
+              {Platform.OS === 'android' && countryCode === 'IN' && (
+                <TouchableOpacity
+                  style={styles.gpayTestBtn}
+                  onPress={handleGooglePayTestPay}
+                  disabled={!!loadingCheckout}
+                  activeOpacity={0.85}
+                >
+                  {loadingCheckout === 'gpay-test' ? (
+                    <ActivityIndicator color={Colors.primary} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={16} color={Colors.primary} />
+                      <Text style={styles.gpayTestBtnText}>Test Google Pay with Rs 1</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
 
               {/* Monthly Plan */}
               <TouchableOpacity
@@ -553,6 +584,19 @@ const styles = StyleSheet.create({
   usageText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary, marginBottom: Spacing.xs },
   usageTrack: { height: 6, backgroundColor: Colors.subtle, borderRadius: 3, overflow: 'hidden' },
   usageFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 3 },
+  gpayTestBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: '#F8FBF7',
+    borderRadius: Radius.md,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: Spacing.xs,
+  },
+  gpayTestBtnText: { fontSize: 14, fontWeight: '600', color: Colors.primary },
   planCard: {
     backgroundColor: Colors.paper, borderRadius: Radius.md, padding: Spacing.md,
     borderWidth: 1, borderColor: Colors.border,

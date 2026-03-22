@@ -10,7 +10,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "http://100.95.26.111:8001",
+        "EXPO_PUBLIC_BACKEND_URL": "https://ubuntu-22-04.tail3dac2c.ts.net",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "698414082215-a5s53e7sgc18894jidptirrmh8i8ho6s.apps.googleusercontent.com"
       }
     },
